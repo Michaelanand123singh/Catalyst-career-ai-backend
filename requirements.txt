@@ -1,6 +1,3 @@
-# Tested Working Combination - Latest Compatible Versions
-# August 2025 - No dependency conflicts
-
 # Core FastAPI dependencies
 fastapi==0.112.0
 uvicorn[standard]==0.30.5
