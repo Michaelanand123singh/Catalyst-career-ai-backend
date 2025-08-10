@@ -1,0 +1,48 @@
+Tech Industry Career Guide
+
+Popular Tech Career Paths:
+
+1. Software Development
+   - Frontend Developer (React, Vue, Angular)
+   - Backend Developer (Python, Java, Node.js)
+   - Full Stack Developer
+   - Mobile Developer (iOS/Android)
+   - DevOps Engineer
+   - Average Salary: $70k-$150k
+
+2. Data & Analytics
+   - Data Scientist
+   - Data Analyst
+   - Machine Learning Engineer
+   - Business Intelligence Analyst
+   - Average Salary: $80k-$160k
+
+3. Product & Design
+   - Product Manager
+   - UX/UI Designer
+   - Product Designer
+   - Technical Product Manager
+   - Average Salary: $90k-$170k
+
+4. Cybersecurity
+   - Security Analyst
+   - Penetration Tester
+   - Security Engineer
+   - CISO (Chief Information Security Officer)
+   - Average Salary: $85k-$180k
+
+Tech Skills in High Demand 2024:
+- Python programming
+- Cloud platforms (AWS, Azure, GCP)
+- Machine Learning/AI
+- React/JavaScript
+- Docker/Kubernetes
+- Data analysis tools
+- Cybersecurity frameworks
+
+Tech Interview Tips:
+- Practice coding problems daily
+- Build a strong GitHub portfolio
+- Understand system design concepts
+- Know your data structures and algorithms
+- Be ready for behavioral questions

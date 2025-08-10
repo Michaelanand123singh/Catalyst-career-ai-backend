@@ -1,0 +1,38 @@
+Finance Industry Career Guide
+
+Finance Career Paths:
+
+1. Corporate Finance
+   - Financial Analyst
+   - Investment Banking Analyst
+   - Corporate Development
+   - Treasury Analyst
+   - Average Salary: $70k-$150k
+
+2. Investment Management
+   - Portfolio Manager
+   - Research Analyst
+   - Investment Advisor
+   - Wealth Manager
+   - Average Salary: $80k-$200k+
+
+3. Financial Technology (FinTech)
+   - Quantitative Analyst
+   - Risk Management Specialist
+   - Blockchain Developer
+   - Financial Software Engineer
+   - Average Salary: $90k-$180k
+
+Essential Finance Skills:
+- Financial modeling in Excel
+- Python/R for data analysis
+- Bloomberg Terminal proficiency
+- CFA or FRM certifications
+- Understanding of derivatives and securities
+
+Breaking into Finance:
+- Strong quantitative background helpful
+- Networking is crucial in finance
+- Consider starting at smaller firms
+- Excel and PowerPoint skills essential
+- Industry certifications add credibility
