@@ -23,16 +23,21 @@ app = FastAPI(
 )
 
 # CORS middleware configuration
-import os
-
 frontend_env = os.getenv("FRONTEND_URL")
 allowed_origins = [
     "http://localhost:3000",  # React dev server
     "http://127.0.0.1:3000",
     "https://localhost:3000",
+    "https://catalyst-career-ai-frontend.vercel.app",  # Production frontend
+    "https://catalyst-career-ai-frontend.vercel.app/",  # With trailing slash
 ]
+
+# Add environment variable frontend URL if provided
 if frontend_env:
     allowed_origins.append(frontend_env)
+
+# Log the allowed origins for debugging
+logger.info(f"CORS allowed origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,
