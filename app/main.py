@@ -30,6 +30,10 @@ allowed_origins = [
     "https://localhost:3000",
     "https://catalyst-career-ai-frontend.vercel.app",  # Production frontend
     "https://catalyst-career-ai-frontend.vercel.app/",  # With trailing slash
+    "https://catalystcareers.in",  # Primary site
+    "https://catalystcareers.in/",  # With trailing slash
+    "https://www.catalystcareers.in",  # www subdomain
+    "https://www.catalystcareers.in/",  # With trailing slash
 ]
 
 # Add environment variable frontend URL if provided
@@ -42,7 +46,7 @@ logger.info(f"CORS allowed origins: {allowed_origins}")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?|https?://[a-z0-9-]+\.vercel\.app",
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?|https?://[a-z0-9-]+\.vercel\.app|https?://(www\.)?catalystcareers\.in",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
