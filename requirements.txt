@@ -35,3 +35,4 @@ pydantic-settings==2.4.0
 
 # Auth
 PyJWT>=2.9.0
+email-validator>=2.1.0.post1

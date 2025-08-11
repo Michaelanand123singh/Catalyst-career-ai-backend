@@ -167,12 +167,11 @@ async def api_status():
 
 if __name__ == "__main__":
     import uvicorn
-    
-    # Run the application
+    port = int(os.getenv("PORT", settings.PORT))
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=port,
         reload=True if settings.ENVIRONMENT == "development" else False,
         log_level="info"
     )
