@@ -121,10 +121,11 @@ async def startup_event():
     
     # Check if API key is configured
     if not settings.GOOGLE_API_KEY:
-        logger.error("❌ GOOGLE_API_KEY not configured!")
-        raise Exception("GOOGLE_API_KEY environment variable is required")
-    
-    logger.info("✅ Google API Key configured")
+        # Do NOT crash the app if the key is missing; auth/admin endpoints should still work.
+        # Chat endpoints will gracefully report unavailability.
+        logger.warning("⚠️ GOOGLE_API_KEY not configured; chat features may be unavailable")
+    else:
+        logger.info("✅ Google API Key configured")
     
     # Test basic imports to catch early errors
     try:
