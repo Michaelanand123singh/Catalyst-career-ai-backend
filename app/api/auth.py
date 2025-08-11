@@ -167,5 +167,3 @@ async def login(payload: LoginRequest):
 @router.get("/auth/me")
 async def me(current = Depends(_get_current_user)):
   return {"user": current}
-
-
