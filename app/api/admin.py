@@ -1,20 +1,47 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
 from typing import Optional, List, Any, Dict
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from datetime import datetime, timezone
+import jwt
 from app.config import settings
 from app.db import get_users_collection, get_activity_collection
 from bson import ObjectId
 import os
 
 router = APIRouter()
+security = HTTPBearer(auto_error=False)
 
 
-async def _require_admin(x_admin_token: Optional[str] = Header(default=None)):
+async def _require_admin(
+    x_admin_token: Optional[str] = Header(default=None),
+    creds: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    # 1) Legacy header token support
     configured_token = os.getenv("ADMIN_API_TOKEN") or settings.ADMIN_API_TOKEN
-    if not configured_token:
-        # If no admin token configured, deny
+    if x_admin_token and configured_token and x_admin_token == configured_token:
+        return
+
+    # 2) JWT bearer support with allowed admin emails
+    admin_emails_env = (os.getenv("ADMIN_EMAILS") or settings.ADMIN_EMAILS or "").strip()
+    allowed_emails = [e.strip().lower() for e in admin_emails_env.split(",") if e.strip()]
+    if not allowed_emails:
+        # If neither ADMIN_API_TOKEN matches nor allowed emails configured, deny
         raise HTTPException(status_code=403, detail="Admin access not configured")
-    if not x_admin_token or x_admin_token != configured_token:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    if not creds:
+        raise HTTPException(status_code=401, detail="Missing credentials")
+
+    token = creds.credentials
+    jwt_secret = os.getenv("JWT_SECRET", "dev_secret_change_me")
+    try:
+        payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])  # same as auth.py
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    email = (payload or {}).get("email", "").lower()
+    if email not in allowed_emails:
+        raise HTTPException(status_code=403, detail="Not an admin user")
 
 
 @router.get("/admin/users")

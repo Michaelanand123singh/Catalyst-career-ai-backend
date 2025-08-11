@@ -38,6 +38,8 @@ class Settings(BaseSettings):
 
     # Admin
     ADMIN_API_TOKEN: str = ""
+    # Comma-separated list of admin emails allowed to access admin endpoints via JWT
+    ADMIN_EMAILS: str = ""
 
     # pydantic-settings config
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
