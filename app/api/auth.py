@@ -8,6 +8,7 @@ import json
 import hashlib
 from typing import Optional
 from app.db import get_users_collection
+from app.config import settings
 from bson import ObjectId
 
 router = APIRouter()
@@ -77,12 +78,16 @@ def _decode_token(token: str):
 
 async def _get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)):
   data = _decode_token(creds.credentials)
-  col = get_users_collection() if os.getenv("MONGODB_URI") else None
+  col = get_users_collection() if settings.MONGODB_URI else None
   user = None
   if col:
-    user = await col.find_one({"_id": ObjectId(data["sub"])})
-    if user:
-      return {"id": str(user["_id"]), "email": user["email"], "name": user.get("name")}
+    try:
+      user = await col.find_one({"_id": ObjectId(data["sub"])})
+      if user:
+        return {"id": str(user["_id"]), "email": user["email"], "name": user.get("name")}
+    except Exception:
+      # Ignore DB errors and fall back to file store
+      user = None
   # Fallback to file store
   users = _read_users().get("users", [])
   user = next((u for u in users if u["id"] == data["sub"]), None)
@@ -93,22 +98,28 @@ async def _get_current_user(creds: HTTPAuthorizationCredentials = Depends(securi
 
 @router.post("/auth/signup")
 async def signup(payload: SignupRequest):
-  col = get_users_collection() if os.getenv("MONGODB_URI") else None
+  col = get_users_collection() if settings.MONGODB_URI else None
   if col:
-    existing = await col.find_one({"email": payload.email.lower()})
-    if existing:
-      raise HTTPException(status_code=400, detail="Email already registered")
-    doc = {
-      "name": payload.name.strip(),
-      "email": payload.email.lower(),
-      "password": _hash_password(payload.password),
-      "created_at": datetime.now(timezone.utc),
-      "last_login_at": datetime.now(timezone.utc),
-    }
-    result = await col.insert_one(doc)
-    user = {"id": str(result.inserted_id), "email": doc["email"], "name": doc.get("name")}
-    token = _make_token({"id": user["id"], "email": user["email"], "name": user.get("name")})
-    return {"token": token, "user": user}
+    try:
+      existing = await col.find_one({"email": payload.email.lower()})
+      if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+      doc = {
+        "name": payload.name.strip(),
+        "email": payload.email.lower(),
+        "password": _hash_password(payload.password),
+        "created_at": datetime.now(timezone.utc),
+        "last_login_at": datetime.now(timezone.utc),
+      }
+      result = await col.insert_one(doc)
+      user = {"id": str(result.inserted_id), "email": doc["email"], "name": doc.get("name")}
+      token = _make_token({"id": user["id"], "email": user["email"], "name": user.get("name")})
+      return {"token": token, "user": user}
+    except HTTPException:
+      raise
+    except Exception:
+      # Fall through to file store if DB operation fails
+      col = None
   # Fallback to file store
   users_blob = _read_users()
   users = users_blob.get("users", [])
@@ -129,15 +140,21 @@ async def signup(payload: SignupRequest):
 
 @router.post("/auth/login")
 async def login(payload: LoginRequest):
-  col = get_users_collection() if os.getenv("MONGODB_URI") else None
+  col = get_users_collection() if settings.MONGODB_URI else None
   if col:
-    user = await col.find_one({"email": payload.email.lower()})
-    if not user or user.get("password") != _hash_password(payload.password):
-      raise HTTPException(status_code=401, detail="Invalid credentials")
-    await col.update_one({"_id": user["_id"]}, {"$set": {"last_login_at": datetime.now(timezone.utc)}})
-    public = {"id": str(user["_id"]), "email": user["email"], "name": user.get("name")}
-    token = _make_token(public)
-    return {"token": token, "user": public}
+    try:
+      user = await col.find_one({"email": payload.email.lower()})
+      if not user or user.get("password") != _hash_password(payload.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+      await col.update_one({"_id": user["_id"]}, {"$set": {"last_login_at": datetime.now(timezone.utc)}})
+      public = {"id": str(user["_id"]), "email": user["email"], "name": user.get("name")}
+      token = _make_token(public)
+      return {"token": token, "user": public}
+    except HTTPException:
+      raise
+    except Exception:
+      # Fall through to file store if DB operation fails
+      col = None
   # Fallback to file store
   users = _read_users().get("users", [])
   user = next((u for u in users if u["email"].lower() == payload.email.lower()), None)
