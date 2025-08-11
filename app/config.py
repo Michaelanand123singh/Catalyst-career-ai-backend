@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     TEMPERATURE: float = 0.4
     MAX_TOKENS: int = 1024
 
+    # Database
+    MONGODB_URI: str = ""
+    MONGODB_DB: str = "catalyst_career_ai"
+    MONGODB_USERS_COLLECTION: str = "users"
+    MONGODB_ACTIVITY_COLLECTION: str = "activity_logs"
+
+    # Admin
+    ADMIN_API_TOKEN: str = ""
+
     # pydantic-settings config
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

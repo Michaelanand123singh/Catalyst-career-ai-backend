@@ -1,6 +1,8 @@
 from app.services.rag_service import RAGService
 from app.services.crew_service import CrewService
 from app.config import settings
+from app.db import get_activity_collection
+from datetime import datetime, timezone
 import logging
 from typing import Dict, List, Optional, Any
 
@@ -103,6 +105,33 @@ class ChatService:
             }
             
             logger.info(f"Successfully processed message using {response['agent_used']}")
+
+            # Log activity if MongoDB configured
+            try:
+                if settings.MONGODB_URI:
+                    col = get_activity_collection()
+                    doc = {
+                        "user_id": user_id,
+                        "message": message,
+                        "agent_used": response.get("agent_used"),
+                        "status": response.get("status"),
+                        "context_used": response.get("context_used"),
+                        "ts": datetime.now(timezone.utc),
+                    }
+                    # motor is async; however this service is sync. Fire-and-forget pattern is tricky.
+                    # We'll attempt to insert using the underlying sync API via asyncio loop in API layer later if needed.
+                    try:
+                        import asyncio
+                        loop = asyncio.get_event_loop()
+                        if loop and loop.is_running():
+                            loop.create_task(col.insert_one(doc))
+                        else:
+                            # For rare sync contexts, ignore
+                            pass
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.debug(f"Activity log failed: {e}")
             return response
             
         except Exception as e:

@@ -3,7 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.api.chat import router as chat_router
 from app.api.auth import router as auth_router
+from app.api.admin import router as admin_router
 from app.config import settings
+from app.db import get_users_collection
 import logging
 import os
 
@@ -29,12 +31,16 @@ allowed_origins = [
     "http://localhost:3000",  # React dev server
     "http://127.0.0.1:3000",
     "https://localhost:3000",
+    "http://localhost:5173",  # Vite dev server (admin-dashboard)
+    "http://127.0.0.1:5173",
+    "https://localhost:5173",
     "https://catalyst-career-ai-frontend.vercel.app",  # Production frontend
     "https://catalyst-career-ai-frontend.vercel.app/",  # With trailing slash
     "https://catalystcareers.in",  # Primary site
     "https://catalystcareers.in/",  # With trailing slash
     "https://www.catalystcareers.in",  # www subdomain
     "https://www.catalystcareers.in/",  # With trailing slash
+    "https://admin.catalystcareers.in",  # Admin dashboard
 ]
 
 # Add environment variable frontend URL if provided
@@ -47,7 +53,8 @@ logger.info(f"CORS allowed origins: {allowed_origins}")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?|https?://[a-z0-9-]+\.vercel\.app|https?://(www\.)?catalystcareers\.in",
+    # Allow localhost, vercel deployments, and any subdomain of catalystcareers.in (including admin)
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https?://[a-z0-9-]+\.vercel\.app$|^https?://([a-z0-9-]+\.)?catalystcareers\.in$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -73,6 +80,7 @@ create_directories()
 # Include API routers
 app.include_router(chat_router, prefix="/api", tags=["chat"])
 app.include_router(auth_router, prefix="/api", tags=["auth"])
+app.include_router(admin_router, prefix="/api", tags=["admin"])
 
 # Root endpoint
 @app.get("/")
@@ -128,6 +136,15 @@ async def startup_event():
         # Don't raise here, let it fail gracefully on first request
     
     logger.info("✅ Catalyst Career AI started successfully!")
+
+    # Ensure DB indexes if MongoDB is configured
+    try:
+        if settings.MONGODB_URI:
+            col = get_users_collection()
+            await col.create_index("email", unique=True)
+            logger.info("✅ Ensured unique index on users.email")
+    except Exception as e:
+        logger.warning(f"⚠️ Skipped MongoDB index creation: {e}")
 
 # Shutdown event
 @app.on_event("shutdown")

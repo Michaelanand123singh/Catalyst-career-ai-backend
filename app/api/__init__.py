@@ -4,5 +4,6 @@ API endpoints and routing for the Catalyst Career AI application
 """
 
 from .chat import router
+from .admin import router as admin_router
 
-__all__ = ["router"]
+__all__ = ["router", "admin_router"]

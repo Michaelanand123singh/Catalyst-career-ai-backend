@@ -6,12 +6,16 @@ import jwt
 import os
 import json
 import hashlib
+from typing import Optional
+from app.db import get_users_collection
+from bson import ObjectId
 
 router = APIRouter()
 
 JWT_SECRET = os.getenv("JWT_SECRET", "dev_secret_change_me")
 JWT_ALG = "HS256"
 TOKEN_EXP_MIN = int(os.getenv("JWT_EXP_MIN", "1440"))  # 24h default
+# Optional file store fallback; used only if Mongo is not configured
 USERS_FILE = os.getenv("USERS_FILE", "data/users.json")
 
 security = HTTPBearer()
@@ -71,8 +75,15 @@ def _decode_token(token: str):
     raise HTTPException(status_code=401, detail="Invalid token")
 
 
-def _get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)):
+async def _get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)):
   data = _decode_token(creds.credentials)
+  col = get_users_collection() if os.getenv("MONGODB_URI") else None
+  user = None
+  if col:
+    user = await col.find_one({"_id": ObjectId(data["sub"])})
+    if user:
+      return {"id": str(user["_id"]), "email": user["email"], "name": user.get("name")}
+  # Fallback to file store
   users = _read_users().get("users", [])
   user = next((u for u in users if u["id"] == data["sub"]), None)
   if not user:
@@ -81,7 +92,24 @@ def _get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)):
 
 
 @router.post("/auth/signup")
-def signup(payload: SignupRequest):
+async def signup(payload: SignupRequest):
+  col = get_users_collection() if os.getenv("MONGODB_URI") else None
+  if col:
+    existing = await col.find_one({"email": payload.email.lower()})
+    if existing:
+      raise HTTPException(status_code=400, detail="Email already registered")
+    doc = {
+      "name": payload.name.strip(),
+      "email": payload.email.lower(),
+      "password": _hash_password(payload.password),
+      "created_at": datetime.now(timezone.utc),
+      "last_login_at": datetime.now(timezone.utc),
+    }
+    result = await col.insert_one(doc)
+    user = {"id": str(result.inserted_id), "email": doc["email"], "name": doc.get("name")}
+    token = _make_token({"id": user["id"], "email": user["email"], "name": user.get("name")})
+    return {"token": token, "user": user}
+  # Fallback to file store
   users_blob = _read_users()
   users = users_blob.get("users", [])
   if any(u["email"].lower() == payload.email.lower() for u in users):
@@ -100,7 +128,17 @@ def signup(payload: SignupRequest):
 
 
 @router.post("/auth/login")
-def login(payload: LoginRequest):
+async def login(payload: LoginRequest):
+  col = get_users_collection() if os.getenv("MONGODB_URI") else None
+  if col:
+    user = await col.find_one({"email": payload.email.lower()})
+    if not user or user.get("password") != _hash_password(payload.password):
+      raise HTTPException(status_code=401, detail="Invalid credentials")
+    await col.update_one({"_id": user["_id"]}, {"$set": {"last_login_at": datetime.now(timezone.utc)}})
+    public = {"id": str(user["_id"]), "email": user["email"], "name": user.get("name")}
+    token = _make_token(public)
+    return {"token": token, "user": public}
+  # Fallback to file store
   users = _read_users().get("users", [])
   user = next((u for u in users if u["email"].lower() == payload.email.lower()), None)
   if not user or user["password"] != _hash_password(payload.password):
@@ -110,7 +148,7 @@ def login(payload: LoginRequest):
 
 
 @router.get("/auth/me")
-def me(current = Depends(_get_current_user)):
+async def me(current = Depends(_get_current_user)):
   return {"user": current}
 
 
