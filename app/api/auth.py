@@ -80,7 +80,7 @@ async def _get_current_user(creds: HTTPAuthorizationCredentials = Depends(securi
   data = _decode_token(creds.credentials)
   col = get_users_collection() if settings.MONGODB_URI else None
   user = None
-  if col:
+  if col is not None:
     try:
       user = await col.find_one({"_id": ObjectId(data["sub"])})
       if user:
@@ -99,7 +99,7 @@ async def _get_current_user(creds: HTTPAuthorizationCredentials = Depends(securi
 @router.post("/auth/signup")
 async def signup(payload: SignupRequest):
   col = get_users_collection() if settings.MONGODB_URI else None
-  if col:
+  if col is not None:
     try:
       existing = await col.find_one({"email": payload.email.lower()})
       if existing:
@@ -141,7 +141,7 @@ async def signup(payload: SignupRequest):
 @router.post("/auth/login")
 async def login(payload: LoginRequest):
   col = get_users_collection() if settings.MONGODB_URI else None
-  if col:
+  if col is not None:
     try:
       user = await col.find_one({"email": payload.email.lower()})
       if not user or user.get("password") != _hash_password(payload.password):
