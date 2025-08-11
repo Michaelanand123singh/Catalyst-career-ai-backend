@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Script to run the Catalyst Career AI backend server
-"""
 
 import os
 import sys
