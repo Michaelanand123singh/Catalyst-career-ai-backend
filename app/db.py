@@ -23,3 +23,11 @@ def get_users_collection():
 
 def get_activity_collection():
     return get_db()[settings.MONGODB_ACTIVITY_COLLECTION]
+
+
+def get_blog_posts_collection():
+    return get_db()["blog_posts"]
+
+
+def get_contact_submissions_collection():
+    return get_db()["contact_submissions"]

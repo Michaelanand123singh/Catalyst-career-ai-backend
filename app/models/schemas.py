@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Any, Dict
+from datetime import datetime
 
 class ChatMessage(BaseModel):
     # Pydantic v2: Use model_config instead of Config class
@@ -121,3 +122,72 @@ class ErrorResponse(BaseModel):
     error: str = Field(..., description="Error message")
     type: str = Field(..., description="Error type")
     details: Optional[str] = Field(default=None, description="Additional error details")
+
+# New models for blog and contact features
+class BlogPost(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "title": "How to Ace Your Job Interview",
+                "content": "This is the blog content...",
+                "excerpt": "Learn the best practices for job interviews",
+                "author": "Career Expert",
+                "tags": ["interview", "career", "tips"],
+                "featured_image": "https://example.com/image.jpg",
+                "status": "published"
+            }
+        }
+    )
+    
+    title: str = Field(..., description="Blog post title")
+    content: str = Field(..., description="Blog post content")
+    excerpt: Optional[str] = Field(default=None, description="Blog post excerpt")
+    author: str = Field(..., description="Author name")
+    tags: List[str] = Field(default=[], description="Blog post tags")
+    featured_image: Optional[str] = Field(default=None, description="Featured image URL")
+    status: str = Field(default="draft", description="Post status: draft, published, archived")
+    published_at: Optional[datetime] = Field(default=None, description="Publication date")
+
+class BlogPostResponse(BaseModel):
+    id: str = Field(..., description="Blog post ID")
+    title: str = Field(..., description="Blog post title")
+    content: str = Field(..., description="Blog post content")
+    excerpt: Optional[str] = Field(default=None, description="Blog post excerpt")
+    author: str = Field(..., description="Author name")
+    tags: List[str] = Field(default=[], description="Blog post tags")
+    featured_image: Optional[str] = Field(default=None, description="Featured image URL")
+    status: str = Field(default="draft", description="Post status")
+    created_at: datetime = Field(..., description="Creation date")
+    updated_at: datetime = Field(..., description="Last update date")
+    published_at: Optional[datetime] = Field(default=None, description="Publication date")
+
+class ContactSubmission(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "name": "John Doe",
+                "email": "john@example.com",
+                "phone": "+1234567890",
+                "subject": "Career Guidance Inquiry",
+                "message": "I need help with career planning..."
+            }
+        }
+    )
+    
+    name: str = Field(..., description="Contact person name")
+    email: str = Field(..., description="Contact email")
+    phone: Optional[str] = Field(default=None, description="Contact phone number")
+    subject: str = Field(..., description="Message subject")
+    message: str = Field(..., description="Message content")
+
+class ContactSubmissionResponse(BaseModel):
+    id: str = Field(..., description="Contact submission ID")
+    name: str = Field(..., description="Contact person name")
+    email: str = Field(..., description="Contact email")
+    phone: Optional[str] = Field(default=None, description="Contact phone number")
+    subject: str = Field(..., description="Message subject")
+    message: str = Field(..., description="Message content")
+    status: str = Field(default="new", description="Status: new, read, replied, archived")
+    created_at: datetime = Field(..., description="Submission date")
+    read_at: Optional[datetime] = Field(default=None, description="When message was read")
+    replied_at: Optional[datetime] = Field(default=None, description="When reply was sent")

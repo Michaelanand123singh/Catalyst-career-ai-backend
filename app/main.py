@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from app.api.chat import router as chat_router
 from app.api.auth import router as auth_router
 from app.api.admin import router as admin_router
+from app.api.content import router as content_router
 from app.config import settings
 from app.db import get_users_collection
 import logging
@@ -81,6 +82,7 @@ create_directories()
 app.include_router(chat_router, prefix="/api", tags=["chat"])
 app.include_router(auth_router, prefix="/api", tags=["auth"])
 app.include_router(admin_router, prefix="/api", tags=["admin"])
+app.include_router(content_router, prefix="/api", tags=["content"])
 
 # Root endpoint
 @app.get("/")
