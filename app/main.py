@@ -42,6 +42,7 @@ allowed_origins = [
     "https://www.catalystcareers.in",  # www subdomain
     "https://www.catalystcareers.in/",  # With trailing slash
     "https://admin.catalystcareers.in",  # Admin dashboard
+    "https://admin.catalystcareers.in/",  # Admin dashboard with trailing slash
 ]
 
 # Add environment variable frontend URL if provided
@@ -59,6 +60,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Create necessary directories

@@ -1,4 +1,5 @@
 import os
+import jwt
 import cloudinary
 import cloudinary.uploader
 from fastapi import APIRouter, Depends, HTTPException, Query, Header, UploadFile, File
