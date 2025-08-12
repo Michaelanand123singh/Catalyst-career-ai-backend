@@ -1,13 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, Header, Query
-from typing import Optional, List, Any, Dict
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import os
+import cloudinary
+import cloudinary.uploader
+from fastapi import APIRouter, Depends, HTTPException, Query, Header, UploadFile, File
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from typing import List, Optional, Any
 from datetime import datetime, timezone
-import jwt
+from bson import ObjectId
+from pydantic import BaseModel
+
 from app.config import settings
 from app.db import get_blog_posts_collection, get_contact_submissions_collection
 from app.models.schemas import BlogPost, BlogPostResponse, ContactSubmission, ContactSubmissionResponse
-from bson import ObjectId
-import os
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "dxckwabqo"),
+    api_key=os.getenv("CLOUDINARY_API_KEY", "227141174969319"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET", "rQHSVnSkHSgS_D75cnYbX6FO-t0")
+)
 
 router = APIRouter()
 security = HTTPBearer(auto_error=False)
@@ -44,6 +54,47 @@ async def _require_admin(
     if email not in allowed_emails:
         raise HTTPException(status_code=403, detail="Not an admin user")
 
+
+# Image Upload Endpoint
+@router.post("/admin/upload-image")
+async def upload_image(file: UploadFile = File(...), _: Any = Depends(_require_admin)):
+    """
+    Upload an image to Cloudinary and return the URL
+    """
+    try:
+        # Validate file type
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Validate file size (max 10MB)
+        if file.size and file.size > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File size must be less than 10MB")
+        
+        # Read file content
+        file_content = await file.read()
+        
+        # Upload to Cloudinary
+        upload_result = cloudinary.uploader.upload(
+            file_content,
+            folder="blog-images",
+            resource_type="image",
+            transformation=[
+                {"width": 1200, "height": 630, "crop": "fill", "quality": "auto"},
+                {"fetch_format": "auto"}
+            ]
+        )
+        
+        return {
+            "success": True,
+            "url": upload_result["secure_url"],
+            "public_id": upload_result["public_id"],
+            "width": upload_result["width"],
+            "height": upload_result["height"]
+        }
+        
+    except Exception as e:
+        print(f"Image upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload image: {str(e)}")
 
 # Blog Post Endpoints
 @router.post("/admin/blog-posts", response_model=BlogPostResponse)
