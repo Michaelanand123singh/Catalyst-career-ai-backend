@@ -1,0 +1,47 @@
+# Google Cloud Build configuration for Catalyst Career AI Backend
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', 
+      '-t', 'gcr.io/prefab-manifest-469511-j9/catalyst-career-ai-backend:$COMMIT_SHA',
+      '-t', 'gcr.io/prefab-manifest-469511-j9/catalyst-career-ai-backend:latest',
+      '.'
+    ]
+    dir: 'backend'
+
+  # Push the image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/prefab-manifest-469511-j9/catalyst-career-ai-backend:$COMMIT_SHA']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/prefab-manifest-469511-j9/catalyst-career-ai-backend:latest']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'catalyst-career-ai-backend',
+      '--image', 'gcr.io/prefab-manifest-469511-j9/catalyst-career-ai-backend:$COMMIT_SHA',
+      '--region', 'us-central1',
+      '--platform', 'managed',
+      '--allow-unauthenticated',
+      '--port', '8000',
+      '--memory', '2Gi',
+      '--cpu', '2',
+      '--max-instances', '10',
+      '--min-instances', '0',
+      '--concurrency', '100',
+      '--timeout', '900',
+      '--set-env-vars', 'ENVIRONMENT=production,PORT=8000,HOST=0.0.0.0'
+    ]
+
+# Store images in Container Registry
+images:
+  - 'gcr.io/prefab-manifest-469511-j9/catalyst-career-ai-backend:$COMMIT_SHA'
+  - 'gcr.io/prefab-manifest-469511-j9/catalyst-career-ai-backend:latest'
+
+# Build options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
