@@ -108,11 +108,30 @@ async def root():
 async def global_exception_handler(request, exc):
     """Global exception handler for unexpected errors"""
     logger.error(f"Unexpected error: {exc}")
+    
+    # Provide more specific error messages based on the error type
+    error_message = "An unexpected error occurred. Please try again later."
+    error_type = "internal_server_error"
+    
+    if "MONGODB_URI is not configured" in str(exc):
+        error_message = "Database connection not configured. Please check environment variables."
+        error_type = "configuration_error"
+    elif "GOOGLE_API_KEY" in str(exc):
+        error_message = "AI service not configured. Please check environment variables."
+        error_type = "configuration_error"
+    elif "connection refused" in str(exc).lower():
+        error_message = "Database connection failed. Please check network configuration."
+        error_type = "connection_error"
+    elif "authentication failed" in str(exc).lower():
+        error_message = "Database authentication failed. Please check credentials."
+        error_type = "authentication_error"
+    
     return JSONResponse(
         status_code=500,
         content={
-            "message": "An unexpected error occurred. Please try again later.",
-            "type": "internal_server_error"
+            "message": error_message,
+            "type": error_type,
+            "details": str(exc) if settings.ENVIRONMENT == "development" else None
         }
     )
 
@@ -123,13 +142,40 @@ async def startup_event():
     logger.info("🚀 Starting Catalyst Career AI...")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     
-    # Check if API key is configured
+    # Configuration validation
+    config_issues = []
+    
+    # Check required environment variables
     if not settings.GOOGLE_API_KEY:
-        # Do NOT crash the app if the key is missing; auth/admin endpoints should still work.
-        # Chat endpoints will gracefully report unavailability.
+        config_issues.append("GOOGLE_API_KEY not configured")
         logger.warning("⚠️ GOOGLE_API_KEY not configured; chat features may be unavailable")
     else:
         logger.info("✅ Google API Key configured")
+    
+    if not settings.MONGODB_URI:
+        config_issues.append("MONGODB_URI not configured")
+        logger.warning("⚠️ MONGODB_URI not configured; database features may be unavailable")
+    else:
+        logger.info("✅ MongoDB URI configured")
+    
+    if not settings.ADMIN_API_TOKEN:
+        config_issues.append("ADMIN_API_TOKEN not configured")
+        logger.warning("⚠️ ADMIN_API_TOKEN not configured; admin features may be unavailable")
+    else:
+        logger.info("✅ Admin API Token configured")
+    
+    if not settings.ADMIN_EMAILS:
+        config_issues.append("ADMIN_EMAILS not configured")
+        logger.warning("⚠️ ADMIN_EMAILS not configured; admin features may be unavailable")
+    else:
+        logger.info("✅ Admin Emails configured")
+    
+    # Log configuration summary
+    if config_issues:
+        logger.warning(f"⚠️ Configuration issues detected: {', '.join(config_issues)}")
+        logger.warning("Some features may be unavailable until these are resolved")
+    else:
+        logger.info("✅ All required configuration is present")
     
     # Test basic imports to catch early errors
     try:
